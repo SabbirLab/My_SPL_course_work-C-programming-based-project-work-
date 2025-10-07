@@ -1,0 +1,204 @@
+///==============================================================
+/// University : United International University (UIU)
+/// Department : Electrical and Electronic Engineering (EEE)
+/// Course     : EEE 2401 - Structured Programming Language
+/// Student    : Sabbir Ahmed
+/// ID         : 0212410034
+/// Title      : Student Record Management System
+///==============================================================
+
+#include <stdio.h>   // Standard input/output header file
+#include <stdlib.h>  // For exit() and general utilities
+#include <string.h>  // For string operations like strcpy, strcmp, etc.
+
+//-------------------------------------------------------------
+// STRUCTURE DECLARATION
+// The structure 'Learner' stores information of each student
+//-------------------------------------------------------------
+typedef struct {
+    int roll;            // Student Roll Number
+    char fullname[50];   // Full Name of the Student
+    float cgpa;          // Student CGPA
+    char sex[10];        // Student Gender (Male/Female)
+} Learner;
+
+//-------------------------------------------------------------
+// FUNCTION DECLARATIONS (Prototypes)
+//-------------------------------------------------------------
+void saveRecord(FILE *fp, Learner *p);  // Adds a new student record
+void showAll(FILE *fp);                 // Displays all student records
+void findByRoll(FILE *fp, int roll);    // Searches a student by roll
+void printLine();                       // Prints a separator line
+char* gradeLevel(float cgpa);           // Calculates grade based on CGPA
+
+//-------------------------------------------------------------
+// Helper Function: Prints a dotted line for neat formatting
+//-------------------------------------------------------------
+void printLine() {
+    printf("........................................\n");
+}
+
+//-------------------------------------------------------------
+// Function: gradeLevel()
+// Purpose: Returns grade string based on CGPA value
+//-------------------------------------------------------------
+char* gradeLevel(float cgpa) {
+    if (cgpa >= 3.75) return "A+";
+    else if (cgpa >= 3.50) return "A";
+    else if (cgpa >= 3.00) return "B";
+    else if (cgpa >= 2.50) return "C";
+    else return "F";
+}
+
+//-------------------------------------------------------------
+// Function: saveRecord()
+// Purpose: Takes input from user and saves record into file
+//-------------------------------------------------------------
+void saveRecord(FILE *fp, Learner *p) {
+    // Ask for roll number
+    printf("\nEnter Roll: ");
+    scanf("%d", &p->roll);
+    getchar();  // Consume newline character left in input buffer
+
+    // Ask for student name
+    printf("Full Name: ");
+    fgets(p->fullname, sizeof(p->fullname), stdin);  // Read full name including spaces
+    p->fullname[strcspn(p->fullname, "\n")] = '\0'; // Remove newline at end
+
+    // Ask for CGPA
+    printf("CGPA: ");
+    scanf("%f", &p->cgpa);
+    getchar();  // Clear input buffer
+
+    // Ask for Gender
+    printf("Gender (Male/Female): ");
+    scanf("%s", p->sex);
+
+    // Write the record into text file in comma-separated format
+    fprintf(fp, "%d,%s,%.2f,%s\n", p->roll, p->fullname, p->cgpa, p->sex);
+    fflush(fp);  // Flush file buffer to ensure data is saved
+
+    printf("\nRecord added successfully!\n");
+}
+
+//-------------------------------------------------------------
+// Function: showAll()
+// Purpose: Reads and displays all records stored in file
+//-------------------------------------------------------------
+void showAll(FILE *fp) {
+    Learner p;             // Structure variable to hold record temporarily
+    rewind(fp);            // Move file pointer to beginning of file
+    char line[100];        // String buffer for reading lines
+    int total = 0;         // Counter for number of records
+
+    printLine();
+    // Print column headers
+    printf("%-8s %-18s %-8s %-8s %-6s\n", "Roll", "Name", "CGPA", "Grade", "Gender");
+    printLine();
+
+    // Read each line from file
+    while (fgets(line, sizeof(line), fp)) {
+        // Parse line and extract data fields using sscanf
+        sscanf(line, "%d,%[^,],%f,%s", &p.roll, p.fullname, &p.cgpa, p.sex);
+
+        // Print data neatly in tabular format
+        printf("%-8d %-18s %-8.2f %-8s %-6s\n",
+               p.roll, p.fullname, p.cgpa, gradeLevel(p.cgpa), p.sex);
+
+        total++; // Increment student count
+    }
+
+    printLine();
+    printf("Total Learners: %d\n", total); // Display total count
+}
+
+//-------------------------------------------------------------
+// Function: findByRoll()
+// Purpose: Searches a specific student record by roll number
+//-------------------------------------------------------------
+void findByRoll(FILE *fp, int roll) {
+    Learner p;             // Structure variable for record
+    char line[100];        // Buffer to read each line
+    int found = 0;         // Flag to check if record found
+
+    rewind(fp);            // Move file pointer to start
+
+    // Loop through each record line-by-line
+    while (fgets(line, sizeof(line), fp)) {
+        sscanf(line, "%d,%[^,],%f,%s", &p.roll, p.fullname, &p.cgpa, p.sex);
+
+        // Compare roll number
+        if (p.roll == roll) {
+            printf("\nRecord Found!\n");
+            printLine();
+            printf("Roll   : %d\n", p.roll);
+            printf("Name   : %s\n", p.fullname);
+            printf("CGPA   : %.2f (%s)\n", p.cgpa, gradeLevel(p.cgpa));
+            printf("Gender : %s\n", p.sex);
+            printLine();
+            found = 1;  // Mark as found
+            break;      // Exit loop after finding record
+        }
+    }
+
+    // If record not found
+    if (!found)
+        printf("\nNo record found for Roll: %d\n", roll);
+}
+
+//-------------------------------------------------------------
+// MAIN FUNCTION
+// Purpose: Controls overall program flow with menu-driven system
+//-------------------------------------------------------------
+int main() {
+    FILE *fp;          // File pointer
+    Learner one;       // Structure variable to store input data
+    int choice, roll;  // Menu choice and roll for searching
+
+    // Open file for reading and appending; create if not exist
+    fp = fopen("student_records.txt", "a+");
+    if (fp == NULL) {
+        printf("File opening failed!\n");
+        return 1; // Exit if file cannot open
+    }
+
+    // Menu-driven infinite loop
+    while (1) {
+        // Display menu options
+        printf("\n===== STUDENT RECORD MENU =====\n");
+        printf("1. Add New Learner\n");
+        printf("2. Show All Learners\n");
+        printf("3. Search by Roll\n");
+        printf("4. Exit\n");
+        printf("Choose: ");
+
+        // Read user's choice
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input!\n");
+            exit(0);
+        }
+
+        // Perform action based on menu choice
+        switch (choice) {
+        case 1:
+            saveRecord(fp, &one);  // Add a new record
+            break;
+        case 2:
+            showAll(fp);           // Display all records
+            break;
+        case 3:
+            printf("\nEnter Roll to Search: ");
+            scanf("%d", &roll);
+            findByRoll(fp, roll);  // Search a record by roll
+            break;
+        case 4:
+            fclose(fp);            // Close file before exiting
+            printf("\nProgram closed. Thank you!\n");
+            exit(0);               // Exit the program
+        default:
+            printf("Invalid option! Try again.\n");
+        }
+    }
+
+    return 0;  // End of program
+}
